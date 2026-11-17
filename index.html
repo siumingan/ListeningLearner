@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ListeningLearner</title>
+  <meta name="description" content="Listening practice with real video: pause at every line, translate it, and hear it clearly.">
+  <meta name="theme-color" content="#2f5bd3">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/favicon.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Listening">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo" aria-hidden="true">◐</span> ListeningLearner</div>
+    <div class="topbar-right">
+      <label class="inline-field">I'm learning
+        <select id="clipLang" title="Language spoken in the clip"></select>
+      </label>
+      <label class="inline-field">Translate into
+        <select id="targetLang" title="Your language"></select>
+      </label>
+      <button id="installBtn" class="btn primary small hidden" type="button" title="Install as an app">📲 Install app</button>
+      <button id="phoneBtn" class="btn ghost hidden" type="button" title="Use ListeningLearner on your phone">📱 Use on phone</button>
+      <button id="pyCheckBtn" class="btn ghost" type="button" title="Show the installed Python version (P)">🐍 Check Python</button>
+      <span id="pyCheckResult" class="py-result hidden" role="status"></span>
+      <button id="openSettings" class="btn ghost" type="button">⚙ Settings</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============ Source ============ -->
+    <section class="card source">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="file" role="tab" type="button"><span class="long">Video file on this computer</span><span class="short">My file</span></button>
+        <button class="tab" data-tab="link" role="tab" type="button"><span class="long">Paste a link</span><span class="short">Link</span></button>
+        <button class="tab" data-tab="any" role="tab" type="button"><span class="long">Any site: download &amp; transcribe</span><span class="short">Any site + AI</span></button>
+      </div>
+
+      <div class="tab-panel hidden" data-panel="any">
+        <div id="pipeOffline" class="notice hidden"></div>
+        <form id="pipeForm" class="row">
+          <input id="pipeUrl" type="text" placeholder="Paste a link from any site: YouTube, Vimeo, Bilibili, TikTok, news, podcasts…" autocomplete="off">
+          <button id="pipeGo" class="btn primary" type="submit">⬇ Download &amp; transcribe</button>
+        </form>
+        <div class="row">
+          <span class="muted">or</span>
+          <label class="file-btn">🎧 Transcribe a file from this device
+            <input id="pipeFile" type="file" accept="audio/*,video/*,.mkv,.m4a,.mp3,.wav,.flac,.ogg,.opus">
+          </label>
+        </div>
+        <div class="row options">
+          <label class="inline-field">Spoken language
+            <select id="pipeLang"><option value="auto">Detect automatically</option></select>
+          </label>
+          <label class="inline-field">Speech-to-text
+            <select id="pipeEngine">
+              <option value="local">AI on this computer (free)</option>
+              <option value="openai">OpenAI (fast, needs API key)</option>
+            </select>
+          </label>
+          <label class="inline-field" id="pipeModelWrap">Accuracy
+            <select id="pipeModel">
+              <option value="base">Fast</option>
+              <option value="small" selected>Balanced</option>
+              <option value="medium">Accurate (slow)</option>
+              <option value="large-v3">Best (needs a strong PC)</option>
+            </select>
+          </label>
+          <label class="inline-field"><input id="pipeKeepVideo" type="checkbox"> Keep the picture (video)</label>
+        </div>
+
+        <div id="pipeJob" class="job hidden">
+          <ol class="steps">
+            <li data-step="1">1 · Download sound</li>
+            <li data-step="2">2 · Speech → text</li>
+            <li data-step="3">3 · Ready to study</li>
+          </ol>
+          <div class="bar"><div id="pipeBar"></div></div>
+          <div id="pipeMsg" class="muted small"></div>
+        </div>
+
+        <h3 class="lib-title">Your library</h3>
+        <ul id="libList" class="lib-list"><li class="muted">Nothing here yet.</li></ul>
+      </div>
+
+      <div class="tab-panel" data-panel="file">
+        <div class="row">
+          <label class="file-btn">🎬 Choose video
+            <input id="videoFile" type="file" accept="video/*,.mkv">
+          </label>
+          <span id="videoFileName" class="muted">No video chosen</span>
+        </div>
+        <div class="row">
+          <label class="file-btn">💬 Choose subtitles (.srt / .vtt)
+            <input class="subFile" type="file" accept=".srt,.vtt,text/vtt,application/x-subrip">
+          </label>
+          <span class="subFileName muted">No subtitles chosen</span>
+        </div>
+        <p class="hint">Tip: subtitles in the language spoken in the clip work best. Your files stay on this computer.</p>
+      </div>
+
+      <div class="tab-panel hidden" data-panel="link">
+        <form id="linkForm" class="row">
+          <input id="linkInput" type="text" placeholder="Paste a YouTube link, e.g. https://www.youtube.com/watch?v=…" autocomplete="off">
+          <button class="btn primary" type="submit">Check link</button>
+        </form>
+        <div id="linkReport" class="link-report hidden"></div>
+        <div id="linkSubRow" class="row hidden">
+          <label class="file-btn">💬 Add your own subtitles (.srt / .vtt)
+            <input class="subFile" type="file" accept=".srt,.vtt,text/vtt,application/x-subrip">
+          </label>
+          <span class="subFileName muted">Optional: unlocks line-by-line study</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Player + line panel ============ -->
+    <section class="stage">
+      <div class="player-box card">
+        <video id="video" class="hidden" playsinline></video>
+        <div id="ytWrap" class="yt-wrap hidden"><div id="ytPlayer"></div></div>
+        <div id="playerEmpty" class="player-empty">Choose a video file or paste a link to start.</div>
+        <div id="audioOnly" class="audio-only hidden"><span class="audio-icon">🎧</span><span id="audioTitle"></span></div>
+      </div>
+
+      <div class="card line-panel">
+        <div class="line-meta">
+          <span id="lineCounter" class="muted">Line – / –</span>
+          <span id="lineStatus" class="pill hidden">Paused at end of line</span>
+        </div>
+
+        <div id="original" class="original" aria-live="polite">
+          <span class="muted">Lines will appear here.</span>
+        </div>
+        <button id="revealBtn" class="btn small ghost hidden" type="button">👁 Show the text</button>
+
+        <div id="translation" class="translation"></div>
+
+        <div class="controls" id="lineControls">
+          <button id="prevBtn" class="btn" type="button" title="Previous line (←)">⏮ Prev</button>
+          <button id="replayBtn" class="btn" type="button" title="Replay this line (R)">⟲ Replay</button>
+          <button id="playBtn" class="btn primary wide" type="button" title="Continue / pause (Space)">▶ Continue</button>
+          <button id="nextBtn" class="btn" type="button" title="Next line (→)">Next ⏭</button>
+        </div>
+
+        <div class="controls">
+          <button id="speakBtn" class="btn accent" type="button" title="Hear the line in a clear voice (S)">🔊 Hear it clearly</button>
+          <button id="speakTransBtn" class="btn" type="button" title="Hear the translation">🔊 Hear translation</button>
+          <button id="translateBtn" class="btn" type="button" title="Translate this line (T)">🌐 Translate</button>
+        </div>
+
+        <div class="toggles">
+          <label><input id="autoPause" type="checkbox" checked> Pause at each line</label>
+          <label><input id="hideOriginal" type="checkbox"> Hide text until I reveal it</label>
+          <label><input id="autoTranslate" type="checkbox" checked> Translate when paused</label>
+        </div>
+
+        <div class="sliders">
+          <label>Video speed
+            <select id="videoRate">
+              <option value="0.5">0.5×</option>
+              <option value="0.75">0.75×</option>
+              <option value="0.9">0.9×</option>
+              <option value="1" selected>1×</option>
+              <option value="1.25">1.25×</option>
+            </select>
+          </label>
+          <label>Clear voice speed <output id="ttsRateOut">0.85×</output>
+            <input id="ttsRate" type="range" min="0.5" max="1.2" step="0.05" value="0.85">
+          </label>
+          <label>Subtitle timing <output id="offsetOut">0.0 s</output>
+            <span class="offset-btns">
+              <button id="offsetMinus" class="btn small" type="button" title="Subtitles earlier">−0.1</button>
+              <button id="offsetPlus" class="btn small" type="button" title="Subtitles later">+0.1</button>
+            </span>
+          </label>
+        </div>
+        <p class="hint keys">Keys: Space continue/pause · R replay · ← → previous/next line · S clear voice · T translate · P check Python</p>
+      </div>
+    </section>
+
+    <!-- ============ Transcript ============ -->
+    <aside class="card transcript">
+      <h2>Transcript</h2>
+      <ol id="cueList" class="cue-list"><li class="muted">No subtitles loaded.</li></ol>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+  <!-- ============ Settings ============ -->
+  <dialog id="settingsDialog">
+    <form method="dialog" id="settingsForm">
+      <h2>Settings</h2>
+
+      <fieldset>
+        <legend>Translation</legend>
+        <label>Translation service
+          <select id="translateProvider">
+            <option value="mymemory">MyMemory (free, no key, small daily limit)</option>
+            <option value="google">Google Cloud Translation (API key)</option>
+            <option value="libre">LibreTranslate (server URL)</option>
+          </select>
+        </label>
+        <label data-for="mymemory">Email (optional, raises MyMemory's free daily limit)
+          <input id="myMemoryEmail" type="email" placeholder="you@example.com">
+        </label>
+        <label data-for="google">Google Cloud Translation API key
+          <input id="googleTranslateKey" type="password" autocomplete="off">
+        </label>
+        <label data-for="libre">LibreTranslate server URL
+          <input id="libreUrl" type="url" placeholder="https://libretranslate.example.com">
+        </label>
+        <label data-for="libre">LibreTranslate API key (if the server needs one)
+          <input id="libreKey" type="password" autocomplete="off">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Speech-to-text</legend>
+        <label>OpenAI API key (only for the "OpenAI" engine)
+          <input id="openaiKey" type="password" autocomplete="off" placeholder="sk-…">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Link checker</legend>
+        <label>YouTube Data API key (for the full link check)
+          <input id="youtubeKey" type="password" autocomplete="off">
+        </label>
+        <label>Your country code (for region checks)
+          <input id="country" type="text" maxlength="2" placeholder="US">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Clear voice</legend>
+        <p id="ttsInfo" class="hint"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>System check</legend>
+        <button id="sysCheckBtn" class="btn small" type="button">Run system check</button>
+        <ul id="sysCheck" class="criteria"></ul>
+      </fieldset>
+
+      <p class="hint">Keys are saved only in this browser on this computer.</p>
+      <div class="dialog-actions">
+        <button class="btn" value="cancel" type="submit">Cancel</button>
+        <button class="btn primary" value="save" type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ Use on phone ============ -->
+  <dialog id="phoneDialog">
+    <form method="dialog" class="dialog-body">
+      <h2>Use on your phone</h2>
+      <div id="phoneBody"></div>
+      <div class="dialog-actions"><button class="btn primary" value="close" type="submit">Close</button></div>
+    </form>
+  </dialog>
+
+  <script src="js/languages.js"></script>
+  <script src="js/native.js"></script>
+  <script src="js/server.js"></script>
+  <script src="js/lines.js"></script>
+  <script src="js/subtitles.js"></script>
+  <script src="js/translate.js"></script>
+  <script src="js/tts.js"></script>
+  <script src="js/players.js"></script>
+  <script src="js/linkcheck.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/mobile.js"></script>
+  <script src="js/pipeline-ui.js"></script>
+</body>
+</html>
